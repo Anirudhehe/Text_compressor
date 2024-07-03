@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Huffman Decoding</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            color: #333;
+        }
+        textarea {
+            width: 300px;
+            height: 100px;
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .output {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            width: 300px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Huffman Decoding</h1>
+    <textarea id="encodedText" placeholder="Enter encoded text..."></textarea>
+    <textarea id="huffmanCodes" placeholder='Enter Huffman codes as JSON (e.g., {"a": "00", "b": "01", "c": "10", "d": "11"})'></textarea>
+    <button onclick="performHuffmanDecoding()">Decode Text</button>
+    <div class="output" id="output"></div>
+    <script>
+        class Node {
+            constructor(char, freq) {
+                this.char = char;
+                this.freq = freq;
+                this.left = null;
+                this.right = null;
+            }
+        }
+
+        function buildHuffmanTreeFromCodes(huffmanCodes) {
+            const root = new Node();
+
+            for (const [char, code] of Object.entries(huffmanCodes)) {
+                let currentNode = root;
+                for (const bit of code) {
+                    if (bit === '0') {
+                        if (!currentNode.left) currentNode.left = new Node();
+                        currentNode = currentNode.left;
+                    } else {
+                        if (!currentNode.right) currentNode.right = new Node();
+                        currentNode = currentNode.right;
+                    }
+                }
+                currentNode.char = char;
+            }
+
+            return root;
+        }
+
+        function decodeText(encodedText, root) {
+            let decodedText = '';
+            let node = root;
+
+            for (const bit of encodedText) {
+                node = bit === '0' ? node.left : node.right;
+
+                if (node.char) {
+                    decodedText += node.char;
+                    node = root;
+                }
+            }
+            return decodedText;
+        }
+
+        function performHuffmanDecoding() {
+            const encodedText = document.getElementById('encodedText').value;
+            const huffmanCodes = JSON.parse(document.getElementById('huffmanCodes').value);
+            if (!encodedText || !huffmanCodes) {
+                alert('Please enter the encoded text and Huffman codes.');
+                return;
+            }
+
+            const huffmanTree = buildHuffmanTreeFromCodes(huffmanCodes);
+            const decodedText = decodeText(encodedText, huffmanTree);
+
+            const outputDiv = document.getElementById('output');
+            outputDiv.innerHTML = `<h3>Decoded Text:</h3><p>${decodedText}</p>`;
+        }
+    </script>
+</body>
+</html>

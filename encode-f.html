@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Huffman Encoding</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            color: #333;
+        }
+        textarea {
+            width: 300px;
+            height: 100px;
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .output {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            width: 300px;
+            max-height: 300px; /* Set a max height */
+            text-align: center;
+            overflow: auto; /* Add scrollbars if needed */
+        }
+        .copy-paste {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            text-align: left; /* Align text to the left */
+        }
+        .encoded-text {
+            word-wrap: break-word; /* Ensure long words break */
+            text-align: left; /* Align text to the left */
+            max-width: 100%; /* Ensure it doesn't overflow */
+        }
+    </style>
+</head>
+<body>
+    <h1>Huffman Encoding</h1>
+    <textarea id="inputText" placeholder="Enter text to encode..."></textarea>
+    <button onclick="performHuffmanEncoding()">Generate Huffman Codes</button>
+    <input type="file" id="fileInput" accept=".txt" />
+    <button onclick="uploadFile()">Upload Text File</button>
+    <div class="output" id="output"></div>
+    <script>
+        class Node {
+            constructor(char, freq) {
+                this.char = char;
+                this.freq = freq;
+                this.left = null;
+                this.right = null;
+            }
+        }
+
+        class MinHeap {
+            constructor() {
+                this.heap = [];
+            }
+
+            insert(node) {
+                this.heap.push(node);
+                this.heapifyUp(this.heap.length - 1);
+            }
+
+            extractMin() {
+                if (this.heap.length === 0) return null;
+                if (this.heap.length === 1) return this.heap.pop();
+                const root = this.heap[0];
+                this.heap[0] = this.heap.pop();
+                this.heapifyDown(0);
+                return root;
+            }
+
+            heapifyUp(index) {
+                while (index > 0 && this.heap[index].freq < this.heap[Math.floor((index - 1) / 2)].freq) {
+                    [this.heap[index], this.heap[Math.floor((index - 1) / 2)]] = [this.heap[Math.floor((index - 1) / 2)], this.heap[index]];
+                    index = Math.floor((index - 1) / 2);
+                }
+            }
+
+            heapifyDown(index) {
+                let smallest = index;
+                const left = 2 * index + 1;
+                const right = 2 * index + 2;
+
+                if (left < this.heap.length && this.heap[left].freq < this.heap[smallest].freq) smallest = left;
+                if (right < this.heap.length && this.heap[right].freq < this.heap[smallest].freq) smallest = right;
+
+                if (smallest !== index) {
+                    [this.heap[index], this.heap[smallest]] = [this.heap[smallest], this.heap[index]];
+                    this.heapifyDown(smallest);
+                }
+            }
+        }
+
+        function buildHuffmanTree(text) {
+            const freqMap = {};
+            for (const char of text) {
+                freqMap[char] = (freqMap[char] || 0) + 1;
+            }
+
+            const minHeap = new MinHeap();
+            for (const char in freqMap) {
+                minHeap.insert(new Node(char, freqMap[char]));
+            }
+
+            while (minHeap.heap.length > 1) {
+                const left = minHeap.extractMin();
+                const right = minHeap.extractMin();
+                const newNode = new Node(null, left.freq + right.freq);
+                newNode.left = left;
+                newNode.right = right;
+                minHeap.insert(newNode);
+            }
+
+            return minHeap.extractMin();
+        }
+
+        function getHuffmanCodes(root, prefix = '', codes = {}) {
+            if (!root) return;
+            if (root.char) {
+                codes[root.char] = prefix;
+            }
+            getHuffmanCodes(root.left, prefix + '0', codes);
+            getHuffmanCodes(root.right, prefix + '1', codes);
+            return codes;
+        }
+
+        function encodeText(text, huffmanCodes) {
+            return text.split('').map(char => huffmanCodes[char]).join('');
+        }
+
+        function performHuffmanEncoding() {
+            const text = document.getElementById('inputText').value;
+            if (!text) {
+                alert('Please enter some text.');
+                return;
+            }
+
+            const huffmanTree = buildHuffmanTree(text);
+            const huffmanCodes = getHuffmanCodes(huffmanTree);
+            const encodedText = encodeText(text, huffmanCodes);
+
+            const encodedTextEncoded = encodeURIComponent(encodedText);
+            const huffmanCodesEncoded = encodeURIComponent(JSON.stringify(huffmanCodes));
+
+            const outputDiv = document.getElementById('output');
+            outputDiv.innerHTML = `<h3>Encoded Text:</h3><p class="encoded-text">${encodedText}</p>`;
+            outputDiv.innerHTML += `<h3>Huffman Codes (Copy this and paste in decode):</h3>`;
+            outputDiv.innerHTML += `<div class="copy-paste">${JSON.stringify(huffmanCodes, null, 2)}</div>`;
+            outputDiv.innerHTML += `<a href="decode.html?encodedText=${encodedTextEncoded}&huffmanCodes=${huffmanCodesEncoded}" target="_blank">Decode this text</a>`;
+        }
+
+        function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please upload a text file.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const text = event.target.result;
+                document.getElementById('inputText').value = text;
+                performHuffmanEncoding();
+            };
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>
